@@ -1,0 +1,233 @@
+model PlatformPlanCatalog {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(80)
+  name        String   @db.VarChar(120)
+  description String?
+  monthlyPrice Decimal @map("monthly_price") @db.Decimal(12, 2)
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_plan_catalog")
+}
+
+model PlatformPlanFeature {
+  planId      String @map("plan_id") @db.Uuid
+  featureKey  String @map("feature_key") @db.VarChar(100)
+  featureValue Json  @default("true") @map("feature_value")
+
+  @@id([planId, featureKey])
+  @@map("platform_plan_features")
+}
+
+model PlatformAddon {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(80)
+  name        String   @db.VarChar(120)
+  description String?
+  price       Decimal  @db.Decimal(12, 2)
+  isRecurring Boolean  @default(true) @map("is_recurring")
+  isActive    Boolean  @default(true) @map("is_active")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("platform_addons")
+}
+
+model PlatformAddonFeature {
+  addonId     String @map("addon_id") @db.Uuid
+  featureKey  String @map("feature_key") @db.VarChar(100)
+  featureValue Json  @default("true") @map("feature_value")
+
+  @@id([addonId, featureKey])
+  @@map("platform_addon_features")
+}
+
+model PlatformOrganizationBilling {
+  organizationId    String    @id @map("organization_id") @db.Uuid
+  anchorDay         Int       @default(1) @map("anchor_day") @db.SmallInt
+  currentPlanId     String?   @map("current_plan_id") @db.Uuid
+  trialDaysRemaining Int      @default(0) @map("trial_days_remaining")
+  trialStartedAt    DateTime? @map("trial_started_at") @db.Timestamptz(6)
+  trialEndsAt       DateTime? @map("trial_ends_at") @db.Timestamptz(6)
+  autopayEnabled    Boolean   @default(false) @map("autopay_enabled")
+  paymentMethodReference String? @map("payment_method_reference")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_organization_billing")
+}
+
+model PlatformSubscription {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  salonId            String   @map("salon_id") @db.Uuid
+  planId             String   @map("plan_id") @db.Uuid
+  status             String   @default("ACTIVE") @db.VarChar(20)
+  billingCycleStart  DateTime @map("billing_cycle_start") @db.Date
+  billingCycleEnd    DateTime @map("billing_cycle_end") @db.Date
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_subscriptions")
+}
+
+model PlatformSalonAddon {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId     String    @map("salon_id") @db.Uuid
+  addonId     String    @map("addon_id") @db.Uuid
+  status      String    @default("ACTIVE") @db.VarChar(20)
+  activatedAt DateTime  @default(now()) @map("activated_at") @db.Timestamptz(6)
+  cancelledAt DateTime? @map("cancelled_at") @db.Timestamptz(6)
+
+  @@unique([salonId, addonId])
+  @@map("platform_salon_addons")
+}
+
+model PlatformAddonPurchase {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  salonId         String   @map("salon_id") @db.Uuid
+  addonId         String   @map("addon_id") @db.Uuid
+  invoiceId       String?  @map("invoice_id") @db.Uuid
+  activationMode  String   @map("activation_mode") @db.VarChar(24)
+  status          String   @default("SCHEDULED") @db.VarChar(24)
+  amount          Decimal  @db.Decimal(12, 2)
+  effectiveAt     DateTime @map("effective_at") @db.Date
+  idempotencyKey  String   @map("idempotency_key") @db.VarChar(255)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([salonId, status, effectiveAt])
+  @@map("platform_addon_purchases")
+}
+
+model PlatformSalonInvoice {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  salonId            String    @map("salon_id") @db.Uuid
+  invoiceKind        String    @default("SUBSCRIPTION") @map("invoice_kind") @db.VarChar(24)
+  invoiceNumber      String    @unique @map("invoice_number") @db.VarChar(100)
+  billingPeriodStart DateTime  @map("billing_period_start") @db.Date
+  billingPeriodEnd   DateTime  @map("billing_period_end") @db.Date
+  gstNumber          String?   @map("gst_number") @db.VarChar(50)
+  subtotal           Decimal   @db.Decimal(12, 2)
+  taxAmount          Decimal   @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  sellerGstin        String?   @map("seller_gstin") @db.VarChar(15)
+  sellerStateCode    String?   @map("seller_state_code") @db.Char(2)
+  buyerStateCode     String?   @map("buyer_state_code") @db.Char(2)
+  taxType            String    @default("NONE") @map("tax_type") @db.VarChar(12)
+  cgstAmount         Decimal   @default(0) @map("cgst_amount") @db.Decimal(12, 2)
+  sgstAmount         Decimal   @default(0) @map("sgst_amount") @db.Decimal(12, 2)
+  igstAmount         Decimal   @default(0) @map("igst_amount") @db.Decimal(12, 2)
+  currency           String    @default("INR") @db.Char(3)
+  totalAmount        Decimal   @map("total_amount") @db.Decimal(12, 2)
+  status             String    @default("UNPAID") @db.VarChar(20)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  paidAt             DateTime? @map("paid_at") @db.Timestamptz(6)
+
+  @@unique([id, organizationId])
+  @@index([salonId, billingPeriodStart, billingPeriodEnd])
+  @@map("platform_salon_invoices")
+}
+
+model PlatformSalonInvoiceItem {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoiceId  String   @map("invoice_id") @db.Uuid
+  itemType   String   @map("item_type") @db.VarChar(30)
+  description String
+  amount     Decimal  @db.Decimal(12, 2)
+  taxAmount  Decimal  @default(0) @map("tax_amount") @db.Decimal(12, 2)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("platform_salon_invoice_items")
+}
+
+model PlatformConsolidatedBill {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  totalAmount        Decimal   @map("total_amount") @db.Decimal(12, 2)
+  status             String    @default("PENDING") @db.VarChar(20)
+  billingPeriodStart DateTime? @map("billing_period_start") @db.Date
+  billingPeriodEnd   DateTime? @map("billing_period_end") @db.Date
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  paidAt             DateTime? @map("paid_at") @db.Timestamptz(6)
+
+  @@unique([id, organizationId])
+  @@map("platform_consolidated_bills")
+}
+
+model PlatformConsolidatedBillInvoice {
+  consolidatedBillId String  @map("consolidated_bill_id") @db.Uuid
+  organizationId     String  @map("organization_id") @db.Uuid
+  invoiceId          String  @map("invoice_id") @db.Uuid
+  amountApplied      Decimal @map("amount_applied") @db.Decimal(12, 2)
+
+  @@id([consolidatedBillId, invoiceId])
+  @@map("platform_consolidated_bill_invoices")
+}
+
+model PlatformPayment {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  consolidatedBillId  String    @map("consolidated_bill_id") @db.Uuid
+  providerReference   String?   @unique @map("provider_reference") @db.VarChar(255)
+  amount              Decimal   @db.Decimal(12, 2)
+  paymentMethod       String?   @map("payment_method") @db.VarChar(40)
+  provider            String?   @db.VarChar(20)
+  checkoutUrl         String?   @map("checkout_url")
+  currency            String    @default("INR") @db.Char(3)
+  expiresAt           DateTime? @map("expires_at") @db.Timestamptz(6)
+  status              String    @default("PENDING") @db.VarChar(20)
+  idempotencyKey      String?   @map("idempotency_key") @db.VarChar(255)
+  checkoutClaimedAt   DateTime? @map("checkout_claimed_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  completedAt         DateTime? @map("completed_at") @db.Timestamptz(6)
+
+  @@map("platform_payments")
+}
+
+model PlatformGstSettings {
+  id                 Int      @id @default(1) @db.SmallInt
+  enabled            Boolean  @default(false) @map("is_enabled")
+  sellerGstin        String?  @map("seller_gstin") @db.VarChar(15)
+  sellerStateCode    String?  @map("seller_state_code") @db.Char(2)
+  ratePercent        Decimal  @default(0) @map("rate_percent") @db.Decimal(5, 2)
+  updatedByAccountId String?  @map("updated_by_account_id") @db.Uuid
+  updatedAt          DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_gst_settings")
+}
+
+model SalonBillingProfile {
+  salonId            String   @id @map("salon_id") @db.Uuid
+  gstin              String?  @db.VarChar(15)
+  stateCode          String   @map("state_code") @db.Char(2)
+  updatedByAccountId String?  @map("updated_by_account_id") @db.Uuid
+  updatedAt          DateTime @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@map("salon_billing_profiles")
+}
+
+model PlatformPaymentWebhookEvent {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider    String   @db.VarChar(20)
+  eventId     String   @map("event_id") @db.VarChar(255)
+  eventType   String   @map("event_type") @db.VarChar(120)
+  processedAt DateTime @default(now()) @map("processed_at") @db.Timestamptz(6)
+
+  @@unique([provider, eventId])
+  @@map("platform_payment_webhook_events")
+}
+
+model PlatformFinancialLedger {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String   @map("organization_id") @db.Uuid
+  salonId        String?  @map("salon_id") @db.Uuid
+  transactionType String  @map("transaction_type") @db.VarChar(20)
+  amount         Decimal  @db.Decimal(12, 2)
+  reason         String
+  invoiceId      String?  @map("invoice_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([organizationId, createdAt])
+  @@map("platform_financial_ledger")
+}

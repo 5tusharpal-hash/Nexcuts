@@ -1,0 +1,5 @@
+# GitHub Copilot Instructions
+
+⚠️ **STRICT GUARDRAILS ACTIVE**
+Refer to AGENTS.md for all project rules, workflows, and non-negotiable constraints.
+You are prohibited from running Git commands, deleting files, or executing code without explicit authorization.

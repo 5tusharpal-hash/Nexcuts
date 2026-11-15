@@ -1,0 +1,35 @@
+model AuditLog {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorAccountId String?  @map("actor_account_id") @db.Uuid
+  actorContext   String   @map("actor_context") @db.VarChar(20)
+  organizationId String?  @map("organization_id") @db.Uuid
+  salonId        String?  @map("salon_id") @db.Uuid
+  action         String   @db.VarChar(120)
+  resourceType   String   @map("resource_type") @db.VarChar(120)
+  resourceId     String?  @map("resource_id")
+  requestId      String?  @map("request_id") @db.VarChar(120)
+  ipAddress      String?  @map("ip_address") @db.Inet
+  userAgent      String?  @map("user_agent")
+  changes        Json     @default("{}")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([actorAccountId, createdAt])
+  @@index([resourceType, resourceId, createdAt])
+  @@index([organizationId, salonId, createdAt])
+  @@map("audit_logs")
+}
+
+model IdempotencyKey {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId      String   @map("account_id") @db.Uuid
+  key            String   @db.VarChar(255)
+  requestHash    String   @map("request_hash") @db.Char(64)
+  responseStatus Int?     @map("response_status") @db.SmallInt
+  responseBody   Json?    @map("response_body")
+  expiresAt      DateTime @map("expires_at") @db.Timestamptz(6)
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([accountId, key])
+  @@index([expiresAt])
+  @@map("idempotency_keys")
+}

@@ -1,0 +1,16 @@
+model SalonMembershipInvitation {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId        String    @map("organization_id") @db.Uuid
+  salonId               String    @map("salon_id") @db.Uuid
+  email                 String    @db.VarChar(320)
+  tokenHash             String    @unique @map("token_hash")
+  roleId                String    @map("role_id") @db.Uuid
+  invitedByMembershipId String    @map("invited_by_membership_id") @db.Uuid
+  status                String    @default("PENDING") @db.VarChar(20)
+  expiresAt             DateTime  @map("expires_at") @db.Timestamptz(6)
+  acceptedByAccountId   String?   @map("accepted_by_account_id") @db.Uuid
+  acceptedAt            DateTime? @map("accepted_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("salon_membership_invitations")
+}

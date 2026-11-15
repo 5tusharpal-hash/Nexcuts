@@ -1,0 +1,186 @@
+model SalonServiceCategory {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId      String   @map("salon_id") @db.Uuid
+  name         String   @db.VarChar(120)
+  description  String?
+  defaultImageCategoryKey String? @map("default_image_category_key") @db.VarChar(80)
+  parentId     String?  @map("parent_id") @db.Uuid
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([id, salonId])
+  @@map("salon_service_categories")
+}
+
+model SalonService {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId                 String    @map("salon_id") @db.Uuid
+  categoryId              String?   @map("category_id") @db.Uuid
+  name                    String    @db.VarChar(255)
+  description             String?
+  estimatedDurationMinutes Int      @map("estimated_duration_minutes")
+  basePrice               Decimal   @map("base_price") @db.Decimal(12, 2)
+  targetAudience          String    @default("UNISEX") @map("target_audience") @db.VarChar(20)
+  imageUrl                String?   @map("image_url")
+  imageObjectKey          String?   @map("image_object_key")
+  defaultImageId          String?   @map("default_image_id") @db.Uuid
+  isPublic                Boolean   @default(true) @map("is_public")
+  isActive                Boolean   @default(true) @map("is_active")
+  reminderDays            Int?      @map("reminder_days")
+  automationConfig        Json      @default("{}") @map("automation_config")
+  createdAt               DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt               DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt               DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@unique([id, salonId])
+  @@index([salonId, isActive])
+  @@map("salon_services")
+}
+
+model SalonStaffProfile {
+  membershipId    String   @id @map("membership_id") @db.Uuid
+  organizationId  String   @map("organization_id") @db.Uuid
+  accountId       String   @map("account_id") @db.Uuid
+  bio             String?
+  profileImageUrl String?  @map("profile_image_url")
+  experienceYears Int?     @map("experience_years")
+  serveType       String   @default("UNISEX") @map("serve_type") @db.VarChar(20)
+  commissionRate  Decimal  @default(0) @map("commission_rate") @db.Decimal(5, 2)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("salon_staff_profiles")
+}
+
+model SalonStaffSkill {
+  membershipId     String   @map("membership_id") @db.Uuid
+  salonId          String   @map("salon_id") @db.Uuid
+  serviceId        String   @map("service_id") @db.Uuid
+  proficiencyLevel String   @default("STANDARD") @map("proficiency_level") @db.VarChar(20)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([membershipId, serviceId])
+  @@index([salonId, serviceId])
+  @@map("salon_staff_skills")
+}
+
+model SalonStaffAvailability {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  membershipId  String   @map("membership_id") @db.Uuid
+  salonId       String   @map("salon_id") @db.Uuid
+  dayOfWeek     Int      @map("day_of_week") @db.SmallInt
+  startsAt      DateTime @map("starts_at") @db.Time(6)
+  endsAt        DateTime @map("ends_at") @db.Time(6)
+  effectiveFrom DateTime? @map("effective_from") @db.Date
+  effectiveUntil DateTime? @map("effective_until") @db.Date
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, membershipId, dayOfWeek])
+  @@map("salon_staff_availability")
+}
+
+model SalonEmployeeShift {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId      String    @map("salon_id") @db.Uuid
+  membershipId String   @map("membership_id") @db.Uuid
+  clockedInAt  DateTime  @default(now()) @map("clocked_in_at") @db.Timestamptz(6)
+  clockedOutAt DateTime? @map("clocked_out_at") @db.Timestamptz(6)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, membershipId, clockedInAt])
+  @@map("salon_employee_shifts")
+}
+
+model SalonEmployeeLunchBreak {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  shiftId   String    @map("shift_id") @db.Uuid
+  startedAt DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt   DateTime? @map("ended_at") @db.Timestamptz(6)
+
+  @@index([shiftId, startedAt])
+  @@map("salon_employee_lunch_breaks")
+}
+
+model SalonEmployeeHoliday {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId           String   @map("salon_id") @db.Uuid
+  holidayDate       DateTime @map("holiday_date") @db.Date
+  name              String   @db.VarChar(160)
+  isPaid            Boolean  @default(true) @map("is_paid")
+  note              String?
+  createdByAccountId String  @map("created_by_account_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([salonId, holidayDate])
+  @@map("salon_employee_holidays")
+}
+
+model SalonEmployeeLeaveType {
+  id             String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId        String  @map("salon_id") @db.Uuid
+  name           String  @db.VarChar(100)
+  isPaid         Boolean @default(true) @map("is_paid")
+  deductsBalance Boolean @default(true) @map("deducts_balance")
+  isEmergency    Boolean @default(false) @map("is_emergency")
+  isActive       Boolean @default(true) @map("is_active")
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([salonId, name])
+  @@unique([id, salonId])
+  @@map("salon_employee_leave_types")
+}
+
+model SalonEmployeeLeaveRequest {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId             String   @map("salon_id") @db.Uuid
+  membershipId        String   @map("membership_id") @db.Uuid
+  leaveTypeId         String   @map("leave_type_id") @db.Uuid
+  startsOn            DateTime @map("starts_on") @db.Date
+  endsOn              DateTime @map("ends_on") @db.Date
+  requestedDays       Decimal  @map("requested_days") @db.Decimal(6, 2)
+  reason              String
+  status              String   @default("PENDING") @db.VarChar(16)
+  reviewedByAccountId String?  @map("reviewed_by_account_id") @db.Uuid
+  reviewedAt          DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNote          String?  @map("review_note")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([salonId, membershipId, startsOn])
+  @@index([salonId, status, createdAt])
+  @@map("salon_employee_leave_requests")
+}
+
+model SalonEmployeeLeaveLedger {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId       String   @map("salon_id") @db.Uuid
+  membershipId  String   @map("membership_id") @db.Uuid
+  leaveTypeId   String   @map("leave_type_id") @db.Uuid
+  requestId     String?  @map("request_id") @db.Uuid
+  entryType     String   @map("entry_type") @db.VarChar(16)
+  daysChange    Decimal  @map("days_change") @db.Decimal(8, 2)
+  note          String
+  actorAccountId String  @map("actor_account_id") @db.Uuid
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, membershipId, leaveTypeId, createdAt])
+  @@map("salon_employee_leave_ledger")
+}
+
+model SalonEmployeeServiceWork {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId            String    @map("salon_id") @db.Uuid
+  membershipId       String    @map("membership_id") @db.Uuid
+  serviceId          String    @map("service_id") @db.Uuid
+  queueEntryStaffId  String?   @map("queue_entry_staff_id") @db.Uuid
+  billItemId         String?   @map("bill_item_id") @db.Uuid
+  startedAt          DateTime  @default(now()) @map("started_at") @db.Timestamptz(6)
+  endedAt            DateTime? @map("ended_at") @db.Timestamptz(6)
+  startedByAccountId String   @map("started_by_account_id") @db.Uuid
+  endedByAccountId   String?  @map("ended_by_account_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, membershipId, startedAt])
+  @@map("salon_employee_service_work")
+}

@@ -1,0 +1,29 @@
+name: Backend CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: salonix-backend
+    env:
+      MIGRATION_DATABASE_URL: postgresql://ci:ci@localhost:5432/salonix
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: salonix-backend/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run db:validate
+      - run: docker build -t salonix-backend:ci .
+      - run: pnpm test
+      - run: pnpm run lint

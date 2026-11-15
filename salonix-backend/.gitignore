@@ -1,0 +1,12 @@
+docs/
+*.js
+*.js.map
+*.d.ts
+dist/
+# TypeScript output
+*.js
+*.js.map
+*.d.ts
+dist/
+build/
+/logs/

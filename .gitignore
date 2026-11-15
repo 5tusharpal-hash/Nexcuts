@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+
+# Local environment and secrets
+.env*
+!.env.example
+
+# Build output and caches
+.next/
+out/
+dist/
+build/
+coverage/
+.turbo/
+.vercel/
+*.tsbuildinfo
+
+# Logs
+*.log
+logs/
+
+# Editor and operating system files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

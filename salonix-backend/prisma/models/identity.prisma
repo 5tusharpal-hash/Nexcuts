@@ -1,0 +1,148 @@
+enum AccountType {
+  CUSTOMER
+  SALON
+  PLATFORM
+  ADMIN
+
+  @@map("account_type")
+}
+
+model Account {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountType        AccountType @default(CUSTOMER) @map("account_type")
+  email              String?   @db.VarChar(320)
+  phoneNumber        String    @map("phone_number") @db.VarChar(32)
+  passwordHash       String    @map("password_hash")
+  fullName           String    @map("full_name") @db.VarChar(255)
+  preferredLanguage  String    @default("en") @map("preferred_language") @db.VarChar(10)
+  status             String    @default("PENDING") @db.VarChar(20)
+  emailVerifiedAt    DateTime? @map("email_verified_at") @db.Timestamptz(6)
+  phoneVerifiedAt    DateTime? @map("phone_verified_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt          DateTime? @map("deleted_at") @db.Timestamptz(6)
+  providerIdentities AccountProviderIdentity[]
+
+  @@unique([accountType, email])
+  @@unique([accountType, phoneNumber])
+  @@map("accounts")
+}
+
+model AccountProviderIdentity {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId       String   @map("account_id") @db.Uuid
+  provider        String   @db.VarChar(20)
+  providerSubject String   @map("provider_subject") @db.VarChar(255)
+  providerEmail   String   @map("provider_email") @db.VarChar(320)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  account         Account  @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, providerSubject])
+  @@unique([accountId, provider])
+  @@index([accountId])
+  @@map("account_provider_identities")
+}
+
+model CustomerProfile {
+  accountId          String   @id @map("account_id") @db.Uuid
+  dateOfBirth        DateTime? @map("date_of_birth") @db.Date
+  marketingConsent   Boolean  @default(false) @map("marketing_consent")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("customer_profiles")
+}
+
+model PlatformDepartment {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(50)
+  name        String   @db.VarChar(100)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("platform_departments")
+}
+
+model PlatformMembership {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId    String   @unique @map("account_id") @db.Uuid
+  departmentId String?  @map("department_id") @db.Uuid
+  jobTitle     String?  @map("job_title") @db.VarChar(120)
+  status       String   @default("ACTIVE") @db.VarChar(20)
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([id, accountId])
+  @@map("platform_memberships")
+}
+
+model PlatformRole {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key         String   @unique @db.VarChar(80)
+  name        String   @db.VarChar(120)
+  description String?
+  isSystem    Boolean  @default(false) @map("is_system")
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("platform_roles")
+}
+
+model PlatformPermission {
+  key         String   @id @db.VarChar(120)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("platform_permissions")
+}
+
+model PlatformRolePermission {
+  roleId        String @map("role_id") @db.Uuid
+  permissionKey String @map("permission_key") @db.VarChar(120)
+
+  @@id([roleId, permissionKey])
+  @@map("platform_role_permissions")
+}
+
+model PlatformMembershipRole {
+  membershipId       String   @map("membership_id") @db.Uuid
+  roleId             String   @map("role_id") @db.Uuid
+  assignedByAccountId String? @map("assigned_by_account_id") @db.Uuid
+  assignedAt         DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  @@id([membershipId, roleId])
+  @@map("platform_membership_roles")
+}
+
+model PlatformSuperAdmin {
+  singletonKey Boolean  @id @default(true) @map("singleton_key")
+  accountId    String   @unique @map("account_id") @db.Uuid
+  assignedAt   DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  @@map("platform_super_admins")
+}
+
+model AccountSession {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId String    @map("account_id") @db.Uuid
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at") @db.Timestamptz(6)
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(6)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  refreshTokens AccountSessionRefreshToken[]
+
+  @@index([accountId, expiresAt])
+  @@map("account_sessions")
+}
+
+model AccountSessionRefreshToken {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sessionId String   @map("session_id") @db.Uuid
+  tokenHash String   @unique @map("token_hash")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(6)
+  usedAt    DateTime? @map("used_at") @db.Timestamptz(6)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  session   AccountSession @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([sessionId, expiresAt])
+  @@map("account_session_refresh_tokens")
+}

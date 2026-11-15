@@ -1,0 +1,9 @@
+# Salonix Frontend Rules
+
+Before every task in `salonix-frontend/`, read rules in this order:
+
+1. Repository-wide `../AGENTS.md` for shared guardrails and conventions.
+2. Frontend `AGENTS.md` for frontend-specific workflow and boundaries.
+3. Frontend `docs/FRONTEND_RULES.md` for Next.js architecture and implementation guidance.
+
+Apply common and frontend rules together. The stricter requirement wins when rules overlap. Keep all frontend changes inside `salonix-frontend/` unless explicitly authorized.

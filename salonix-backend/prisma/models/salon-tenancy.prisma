@@ -1,0 +1,165 @@
+model SalonOrganization {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name      String    @db.VarChar(255)
+  legalName String?   @map("legal_name") @db.VarChar(255)
+  status    String    @default("PENDING") @db.VarChar(20)
+  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@map("salon_organizations")
+}
+
+model Salon {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId String  @map("organization_id") @db.Uuid
+  branchCode   String    @map("branch_code") @db.VarChar(50)
+  name         String    @db.VarChar(255)
+  addressLine1 String?   @map("address_line_1")
+  addressLine2 String?   @map("address_line_2")
+  city         String?   @db.VarChar(120)
+  state        String?   @db.VarChar(120)
+  postalCode   String?   @map("postal_code") @db.VarChar(24)
+  countryCode  String    @default("IN") @map("country_code") @db.Char(2)
+  timezone     String    @default("Asia/Kolkata") @db.VarChar(64)
+  status       String    @default("PENDING") @db.VarChar(20)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt    DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, branchCode])
+  @@unique([id, organizationId])
+  @@map("salons")
+}
+
+model SalonApplication {
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String   @map("organization_id") @db.Uuid
+  salonId             String   @unique @map("salon_id") @db.Uuid
+  applicantAccountId  String   @map("applicant_account_id") @db.Uuid
+  businessType        String   @map("business_type") @db.VarChar(20)
+  status              String   @default("PENDING") @db.VarChar(30)
+  proposedServices    Json     @default("[]") @map("proposed_services")
+  submittedAt         DateTime @default(now()) @map("submitted_at") @db.Timestamptz(6)
+  reviewedByAccountId String?  @map("reviewed_by_account_id") @db.Uuid
+  reviewedAt          DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNotes         String?  @map("review_notes")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, submittedAt])
+  @@map("salon_applications")
+}
+
+model SalonProfileChangeRequest {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId     String    @map("organization_id") @db.Uuid
+  salonId            String    @map("salon_id") @db.Uuid
+  requestedByAccountId String  @map("requested_by_account_id") @db.Uuid
+  proposedChanges    Json      @map("proposed_changes")
+  requestNotes       String?   @map("request_notes")
+  status             String    @default("PENDING") @db.VarChar(20)
+  reviewedByAccountId String?  @map("reviewed_by_account_id") @db.Uuid
+  reviewedAt         DateTime? @map("reviewed_at") @db.Timestamptz(6)
+  reviewNotes        String?   @map("review_notes")
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, createdAt])
+  @@index([salonId, createdAt])
+  @@map("salon_profile_change_requests")
+}
+
+model SalonBusinessHours {
+  salonId   String   @map("salon_id") @db.Uuid
+  dayOfWeek Int      @map("day_of_week") @db.SmallInt
+  isClosed  Boolean  @default(false) @map("is_closed")
+  opensAt   DateTime? @map("opens_at") @db.Time(6)
+  closesAt  DateTime? @map("closes_at") @db.Time(6)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([salonId, dayOfWeek])
+  @@map("salon_business_hours")
+}
+
+model SalonMembership {
+  id                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId      String    @map("organization_id") @db.Uuid
+  accountId           String    @map("account_id") @db.Uuid
+  status              String    @default("ACTIVE") @db.VarChar(20)
+  invitedByAccountId  String?   @map("invited_by_account_id") @db.Uuid
+  joinedAt            DateTime? @map("joined_at") @db.Timestamptz(6)
+  createdAt           DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, accountId])
+  @@unique([id, organizationId])
+  @@unique([id, organizationId, accountId])
+  @@map("salon_memberships")
+}
+
+model SalonOrganizationOwner {
+  organizationId String   @id @map("organization_id") @db.Uuid
+  accountId      String   @map("account_id") @db.Uuid
+  membershipId   String   @map("membership_id") @db.Uuid
+  assignedAt     DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  @@unique([accountId, organizationId])
+  @@map("salon_organization_owners")
+}
+
+model SalonPermission {
+  key         String   @id @db.VarChar(120)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("salon_permissions")
+}
+
+model SalonRole {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  organizationId    String   @map("organization_id") @db.Uuid
+  key               String   @db.VarChar(80)
+  name              String   @db.VarChar(120)
+  description       String?
+  isSystem          Boolean  @default(false) @map("is_system")
+  createdByAccountId String? @map("created_by_account_id") @db.Uuid
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([organizationId, key])
+  @@unique([id, organizationId])
+  @@map("salon_roles")
+}
+
+model SalonRolePermission {
+  roleId        String @map("role_id") @db.Uuid
+  permissionKey String @map("permission_key") @db.VarChar(120)
+
+  @@id([roleId, permissionKey])
+  @@map("salon_role_permissions")
+}
+
+model SalonMembershipLocation {
+  membershipId       String   @map("membership_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  salonId            String   @map("salon_id") @db.Uuid
+  assignedByAccountId String? @map("assigned_by_account_id") @db.Uuid
+  assignedAt         DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  @@id([membershipId, salonId])
+  @@index([salonId, membershipId])
+  @@map("salon_membership_locations")
+}
+
+model SalonMembershipRole {
+  membershipId       String   @map("membership_id") @db.Uuid
+  organizationId     String   @map("organization_id") @db.Uuid
+  salonId            String   @map("salon_id") @db.Uuid
+  roleId             String   @map("role_id") @db.Uuid
+  assignedByAccountId String? @map("assigned_by_account_id") @db.Uuid
+  assignedAt         DateTime @default(now()) @map("assigned_at") @db.Timestamptz(6)
+
+  @@id([membershipId, roleId, salonId])
+  @@index([organizationId, salonId, membershipId])
+  @@map("salon_membership_roles")
+}

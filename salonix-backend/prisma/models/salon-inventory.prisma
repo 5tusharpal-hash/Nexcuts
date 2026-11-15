@@ -1,0 +1,162 @@
+model SalonProduct {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId        String    @map("salon_id") @db.Uuid
+  sku            String?   @db.VarChar(100)
+  name           String    @db.VarChar(255)
+  description    String?
+  category       String?   @db.VarChar(100)
+  inventoryType  String    @default("LEGACY_UNCLASSIFIED") @map("inventory_type") @db.VarChar(24)
+  baseUnit       String    @map("base_unit") @db.VarChar(20)
+  contentQuantity Decimal? @map("content_quantity") @db.Decimal(12, 3)
+  contentUnit    String?   @map("content_unit") @db.VarChar(20)
+  currentStock   Decimal   @default(0) @map("current_stock") @db.Decimal(12, 2)
+  reorderLevel   Decimal   @default(0) @map("reorder_level") @db.Decimal(12, 2)
+  lowStockAlertEnabled Boolean @default(false) @map("low_stock_alert_enabled")
+  costPrice      Decimal?  @map("cost_price") @db.Decimal(12, 2)
+  retailPrice    Decimal?  @map("retail_price") @db.Decimal(12, 2)
+  isSellable     Boolean   @default(false) @map("is_sellable")
+  isInternalOnly Boolean   @default(true) @map("is_internal_only")
+  isActive       Boolean   @default(true) @map("is_active")
+  createdAt      DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt      DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+  deletedAt      DateTime? @map("deleted_at") @db.Timestamptz(6)
+
+  @@unique([id, salonId])
+  @@unique([salonId, inventoryType, sku])
+  @@map("salon_products")
+}
+
+model SalonProductBarcode {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId   String   @map("salon_id") @db.Uuid
+  productId String   @map("product_id") @db.Uuid
+  barcode   String   @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([salonId, productId, barcode])
+  @@map("salon_product_barcodes")
+}
+
+model SalonInventoryBatch {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId         String    @map("salon_id") @db.Uuid
+  productId       String    @map("product_id") @db.Uuid
+  batchNumber     String?   @map("batch_number") @db.VarChar(100)
+  expiryDate      DateTime? @map("expiry_date") @db.Date
+  initialQuantity Decimal   @map("initial_quantity") @db.Decimal(12, 2)
+  currentQuantity Decimal   @map("current_quantity") @db.Decimal(12, 2)
+  costPerUnit     Decimal?  @map("cost_per_unit") @db.Decimal(12, 2)
+  receivedAt      DateTime  @default(now()) @map("received_at") @db.Timestamptz(6)
+
+  @@index([salonId, productId, expiryDate, receivedAt])
+  @@unique([id, salonId])
+  @@unique([id, salonId, productId])
+  @@map("salon_inventory_batches")
+}
+
+model SalonInventoryLedger {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId            String   @map("salon_id") @db.Uuid
+  productId          String   @map("product_id") @db.Uuid
+  batchId            String?  @map("batch_id") @db.Uuid
+  quantityChange     Decimal  @map("quantity_change") @db.Decimal(12, 2)
+  reason             String   @db.VarChar(30)
+  referenceId        String?  @map("reference_id") @db.Uuid
+  createdByAccountId String?  @map("created_by_account_id") @db.Uuid
+  note               String?
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, productId, createdAt])
+  @@map("salon_inventory_ledger")
+}
+
+model SalonServiceConsumable {
+  salonId          String   @map("salon_id") @db.Uuid
+  serviceId        String   @map("service_id") @db.Uuid
+  productId        String   @map("product_id") @db.Uuid
+  quantityRequired Decimal @map("quantity_required") @db.Decimal(12, 2)
+  createdAt        DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@id([serviceId, productId])
+  @@map("salon_service_consumables")
+}
+
+model SalonServiceConsumableUsage {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId               String   @map("salon_id") @db.Uuid
+  serviceId             String   @map("service_id") @db.Uuid
+  productId             String   @map("product_id") @db.Uuid
+  billId                String   @map("bill_id") @db.Uuid
+  billItemId            String   @map("bill_item_id") @db.Uuid
+  estimatedQuantity     Decimal  @map("estimated_quantity") @db.Decimal(12, 3)
+  quantityUnit          String   @map("quantity_unit") @db.VarChar(20)
+  recordedByAccountId   String   @map("recorded_by_account_id") @db.Uuid
+  createdAt             DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([billItemId, productId])
+  @@index([salonId, productId, createdAt])
+  @@map("salon_service_consumable_usage")
+}
+
+model SalonInventoryIssueRequest {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId               String    @map("salon_id") @db.Uuid
+  productId             String    @map("product_id") @db.Uuid
+  targetType            String    @map("target_type") @db.VarChar(12)
+  targetMembershipId    String?   @map("target_membership_id") @db.Uuid
+  requestedByAccountId  String    @map("requested_by_account_id") @db.Uuid
+  quantity              Decimal   @db.Decimal(12, 2)
+  status                String    @default("REQUESTED") @db.VarChar(20)
+  requestNote           String?   @map("request_note")
+  batchId               String?   @map("batch_id") @db.Uuid
+  issuedByAccountId     String?   @map("issued_by_account_id") @db.Uuid
+  issuedAt              DateTime? @map("issued_at") @db.Timestamptz(6)
+  closedAt              DateTime? @map("closed_at") @db.Timestamptz(6)
+  createdAt             DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt             DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([id, salonId])
+  @@index([salonId, status, createdAt])
+  @@index([salonId, requestedByAccountId, createdAt])
+  @@map("salon_inventory_issue_requests")
+}
+
+model SalonInventoryIssueEvent {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId       String   @map("salon_id") @db.Uuid
+  requestId     String   @map("request_id") @db.Uuid
+  eventType     String   @map("event_type") @db.VarChar(20)
+  actorAccountId String  @map("actor_account_id") @db.Uuid
+  note          String?
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, requestId, createdAt])
+  @@map("salon_inventory_issue_events")
+}
+
+model SalonInventoryReminderState {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId       String    @map("salon_id") @db.Uuid
+  productId     String    @map("product_id") @db.Uuid
+  alertType     String    @map("alert_type") @db.VarChar(20)
+  isActive      Boolean   @default(true) @map("is_active")
+  lastNotifiedAt DateTime @default(now()) @map("last_notified_at") @db.Timestamptz(6)
+  resolvedAt    DateTime? @map("resolved_at") @db.Timestamptz(6)
+
+  @@unique([salonId, productId, alertType])
+  @@map("salon_inventory_reminder_states")
+}
+
+model SalonInventoryReminderDelivery {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId            String   @map("salon_id") @db.Uuid
+  accountId          String   @map("account_id") @db.Uuid
+  batchId            String   @map("batch_id") @db.Uuid
+  expiryDate         DateTime @map("expiry_date") @db.Date
+  leadDays           Int      @map("lead_days")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([batchId, expiryDate, leadDays, accountId])
+  @@index([salonId, createdAt])
+  @@map("salon_inventory_reminder_deliveries")
+}

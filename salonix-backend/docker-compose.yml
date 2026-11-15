@@ -1,0 +1,65 @@
+services:
+  api:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      HOST: 0.0.0.0
+      DATABASE_URL: postgresql://salonix:salonix@postgres:5432/salonix
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: ${JWT_SECRET:?JWT_SECRET is required}
+      AUTH_OTP_DELIVERY: providers
+      AUTH_OTP_HASH_SECRET: ${AUTH_OTP_HASH_SECRET:?AUTH_OTP_HASH_SECRET is required}
+      META_WHATSAPP_ACCESS_TOKEN: ${META_WHATSAPP_ACCESS_TOKEN:?META_WHATSAPP_ACCESS_TOKEN is required}
+      META_WHATSAPP_PHONE_NUMBER_ID: ${META_WHATSAPP_PHONE_NUMBER_ID:?META_WHATSAPP_PHONE_NUMBER_ID is required}
+      META_WHATSAPP_API_VERSION: ${META_WHATSAPP_API_VERSION:-v23.0}
+      META_WHATSAPP_OTP_TEMPLATE: ${META_WHATSAPP_OTP_TEMPLATE:?META_WHATSAPP_OTP_TEMPLATE is required}
+      RESEND_API_KEY: ${RESEND_API_KEY:?RESEND_API_KEY is required}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:?RESEND_FROM_EMAIL is required}
+      CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+    stop_grace_period: 15s
+    healthcheck:
+      test: ["CMD", "node", "-e", "fetch('http://localhost:3000/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 20s
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: salonix
+      POSTGRES_USER: salonix
+      POSTGRES_PASSWORD: salonix
+    volumes:
+      - salonix_postgres:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U salonix -d salonix"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - salonix_redis:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+volumes:
+  salonix_postgres:
+  salonix_redis:

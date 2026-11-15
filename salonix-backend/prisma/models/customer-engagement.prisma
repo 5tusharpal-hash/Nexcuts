@@ -1,0 +1,238 @@
+model NotificationTemplate {
+  id            String   @id @db.VarChar(80)
+  titleTemplate String   @map("title_template")
+  bodyTemplate  String   @map("body_template")
+  priority      String   @default("NORMAL") @db.VarChar(12)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("notification_templates")
+}
+
+model CustomerNotificationPreference {
+  customerAccountId String   @id @map("customer_account_id") @db.Uuid
+  pushEnabled       Boolean  @default(true) @map("push_enabled")
+  emailEnabled      Boolean  @default(true) @map("email_enabled")
+  smsEnabled        Boolean  @default(false) @map("sms_enabled")
+  whatsappEnabled   Boolean  @default(false) @map("whatsapp_enabled")
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("customer_notification_preferences")
+}
+
+model AccountDeviceToken {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  accountId   String   @map("account_id") @db.Uuid
+  deviceToken String   @map("device_token")
+  deviceType  String   @map("device_type") @db.VarChar(20)
+  lastUsedAt  DateTime @default(now()) @map("last_used_at") @db.Timestamptz(6)
+
+  @@unique([accountId, deviceToken])
+  @@map("account_device_tokens")
+}
+
+model AccountNotification {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  deliveryKey String?   @unique @map("delivery_key") @db.VarChar(120)
+  accountId   String    @map("account_id") @db.Uuid
+  salonId    String?   @map("salon_id") @db.Uuid
+  templateId String?   @map("template_id") @db.VarChar(80)
+  title      String
+  body       String
+  channel    String    @default("IN_APP") @db.VarChar(20)
+  priority   String    @default("NORMAL") @db.VarChar(12)
+  status     String    @default("PENDING") @db.VarChar(20)
+  metadata   Json      @default("{}")
+  readAt     DateTime? @map("read_at") @db.Timestamptz(6)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([accountId, createdAt])
+  @@map("account_notifications")
+}
+
+model SalonMarketingCampaign {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId              String    @map("salon_id") @db.Uuid
+  name                 String    @db.VarChar(255)
+  templateId           String    @map("template_id") @db.VarChar(80)
+  targetCriteria       Json      @default("{}") @map("target_criteria")
+  scheduledAt          DateTime? @map("scheduled_at") @db.Timestamptz(6)
+  status               String    @default("DRAFT") @db.VarChar(20)
+  createdByMembershipId String?  @map("created_by_membership_id") @db.Uuid
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([salonId, status, scheduledAt])
+  @@map("salon_marketing_campaigns")
+}
+
+model SalonMarketingDelivery {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  campaignId        String    @map("campaign_id") @db.Uuid
+  customerAccountId String    @map("customer_account_id") @db.Uuid
+  channel           String    @db.VarChar(20)
+  status            String    @default("PENDING") @db.VarChar(20)
+  sentAt            DateTime? @map("sent_at") @db.Timestamptz(6)
+  providerReference String?   @map("provider_reference")
+  attemptCount      Int       @default(0) @map("attempt_count")
+  lastAttemptAt     DateTime? @map("last_attempt_at") @db.Timestamptz(6)
+  lastError         String?   @map("last_error")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([campaignId, customerAccountId, channel])
+  @@map("salon_marketing_deliveries")
+}
+
+model SalonMarketingConsent {
+  id                 String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId            String   @map("salon_id") @db.Uuid
+  customerAccountId  String   @map("customer_account_id") @db.Uuid
+  consentScope       String   @map("consent_scope") @db.VarChar(20)
+  isGranted          Boolean  @map("is_granted")
+  source             String   @db.VarChar(24)
+  consentTextVersion String   @map("consent_text_version") @db.VarChar(40)
+  queueEntryId       String?  @map("queue_entry_id") @db.Uuid
+  recordedAt         DateTime @default(now()) @map("recorded_at") @db.Timestamptz(6)
+
+  @@index([salonId, customerAccountId, consentScope, recordedAt])
+  @@map("salon_marketing_consents")
+}
+
+model SalonEnquiry {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId            String    @map("salon_id") @db.Uuid
+  customerAccountId  String?   @map("customer_account_id") @db.Uuid
+  customerName       String    @map("customer_name") @db.VarChar(255)
+  customerPhone      String    @map("customer_phone") @db.VarChar(32)
+  customerEmail      String?   @map("customer_email") @db.VarChar(320)
+  serviceInterest    String?   @map("service_interest")
+  message            String?
+  status             String    @default("NEW") @db.VarChar(20)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([id, salonId])
+  @@index([salonId, status, createdAt])
+  @@map("salon_enquiries")
+}
+
+model SalonEnquiryResponse {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  enquiryId         String   @map("enquiry_id") @db.Uuid
+  salonId           String   @map("salon_id") @db.Uuid
+  staffMembershipId String   @map("staff_membership_id") @db.Uuid
+  note              String
+  isExternalReply   Boolean  @default(false) @map("is_external_reply")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("salon_enquiry_responses")
+}
+
+model SalonPublicProfile {
+  salonId           String    @id @map("salon_id") @db.Uuid
+  slug              String    @unique @db.VarChar(255)
+  publicDescription String?   @map("public_description")
+  contactPhone      String?   @map("contact_phone") @db.VarChar(32)
+  contactEmail      String?   @map("contact_email") @db.VarChar(320)
+  addressText       String?   @map("address_text")
+  latitude          Decimal?  @db.Decimal(10, 8)
+  longitude         Decimal?  @db.Decimal(11, 8)
+  isVerified        Boolean   @default(false) @map("is_verified")
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("salon_public_profiles")
+}
+
+model SalonGalleryCategory {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId      String   @map("salon_id") @db.Uuid
+  categoryName String   @map("category_name") @db.VarChar(100)
+  displayOrder Int      @default(0) @map("display_order")
+  isActive     Boolean  @default(true) @map("is_active")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([id, salonId])
+  @@map("salon_gallery_categories")
+}
+
+model SalonGalleryImage {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId      String   @map("salon_id") @db.Uuid
+  categoryId   String   @map("category_id") @db.Uuid
+  imageUrl     String   @map("image_url")
+  objectKey    String?  @map("object_key")
+  altText      String?  @map("alt_text")
+  isFeatured   Boolean  @default(false) @map("is_featured")
+  isActive     Boolean  @default(true) @map("is_active")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([salonId, categoryId, displayOrder])
+  @@map("salon_gallery_images")
+}
+
+model SalonServiceDefaultImage {
+  id             String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  categoryKey    String   @map("category_key") @db.VarChar(80)
+  objectKey      String   @map("object_key")
+  altText        String?  @map("alt_text")
+  isActive       Boolean  @default(true) @map("is_active")
+  createdByAccountId String @map("created_by_account_id") @db.Uuid
+  createdAt      DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([categoryKey, isActive])
+  @@map("salon_service_default_images")
+}
+
+model PlatformServiceImageSetting {
+  id                    Boolean  @id @default(true)
+  serviceImageRequired  Boolean  @default(false) @map("service_image_required")
+  updatedByAccountId    String?  @map("updated_by_account_id") @db.Uuid
+  updatedAt             DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_service_image_settings")
+}
+
+model PlatformSalonEntitlementOverride {
+  salonId         String    @map("salon_id") @db.Uuid
+  featureKey      String    @map("feature_key") @db.VarChar(100)
+  featureValue    Json      @map("feature_value")
+  reason          String
+  grantedByAccountId String @map("granted_by_account_id") @db.Uuid
+  expiresAt       DateTime? @map("expires_at") @db.Timestamptz(6)
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@id([salonId, featureKey])
+  @@map("platform_salon_entitlement_overrides")
+}
+
+model CustomerSalonReview {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId           String   @map("salon_id") @db.Uuid
+  billId            String   @map("bill_id") @db.Uuid
+  customerAccountId String   @map("customer_account_id") @db.Uuid
+  rating            Int      @db.SmallInt
+  comment           String?
+  isPublic          Boolean  @default(false) @map("is_public")
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([billId, customerAccountId])
+  @@map("customer_salon_reviews")
+}
+
+model CustomerStaffReview {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  salonId           String   @map("salon_id") @db.Uuid
+  billId            String   @map("bill_id") @db.Uuid
+  customerAccountId String   @map("customer_account_id") @db.Uuid
+  staffMembershipId String   @map("staff_membership_id") @db.Uuid
+  rating            Int      @db.SmallInt
+  comment           String?
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@unique([billId, customerAccountId, staffMembershipId])
+  @@map("customer_staff_reviews")
+}

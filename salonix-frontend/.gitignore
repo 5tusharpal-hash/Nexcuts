@@ -1,0 +1,19 @@
+# dependencies
+/node_modules
+
+# Next.js build output
+/.next
+/out
+
+# local environment files
+.env*
+!.env.example
+
+# logs and coverage
+*.log
+logs/
+coverage/
+
+# editor and operating system files
+.DS_Store
+.vscode/

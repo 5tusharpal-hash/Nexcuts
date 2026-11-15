@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "src/server.ts",
+    "src/bootstrap/app.ts",
+    "src/bootstrap/cors.ts",
+    "src/bootstrap/helmet.ts"
+  ],
+  "exclude": ["node_modules", "dist"]
+}

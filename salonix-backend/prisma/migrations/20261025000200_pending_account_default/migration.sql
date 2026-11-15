@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE accounts
+    ALTER COLUMN status SET DEFAULT 'PENDING';
+
+COMMIT;
