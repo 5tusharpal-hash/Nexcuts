@@ -1,4 +1,5 @@
 import { env } from '../../config/env.js';
+import { ApiError } from '../../shared/errors/ApiError.js';
 
 export interface WhatsAppOtp {
   to: string;
@@ -13,14 +14,14 @@ export interface WhatsAppMessage {
 export class WhatsAppIntegration {
   private get apiUrl(): string {
     if (!env.META_WHATSAPP_API_VERSION || !env.META_WHATSAPP_PHONE_NUMBER_ID) {
-      throw new Error('WhatsApp provider is not configured');
+      throw new ApiError(503, 'WhatsApp provider is not configured');
     }
     return `https://graph.facebook.com/${env.META_WHATSAPP_API_VERSION}/${env.META_WHATSAPP_PHONE_NUMBER_ID}/messages`;
   }
 
   private get headers(): Record<string, string> {
     if (!env.META_WHATSAPP_ACCESS_TOKEN) {
-      throw new Error('WhatsApp provider is not configured');
+      throw new ApiError(503, 'WhatsApp provider is not configured');
     }
     return {
       Authorization: `Bearer ${env.META_WHATSAPP_ACCESS_TOKEN}`,
@@ -31,7 +32,9 @@ export class WhatsAppIntegration {
   async sendOtp({ to, code }: WhatsAppOtp): Promise<void> {
     if (env.AUTH_OTP_DELIVERY === 'mock') return;
 
-    if (!env.META_WHATSAPP_OTP_TEMPLATE) throw new Error('WhatsApp OTP template is not configured');
+    if (!env.META_WHATSAPP_OTP_TEMPLATE) {
+      throw new ApiError(503, 'WhatsApp OTP template is not configured');
+    }
 
     const response = await fetch(this.apiUrl, {
       method: 'POST',
@@ -64,7 +67,7 @@ export class WhatsAppIntegration {
 
   async sendMessage({ to, body }: WhatsAppMessage): Promise<void> {
     if (env.AUTH_OTP_DELIVERY === 'mock') {
-      throw new Error('WhatsApp messaging is disabled in mock delivery mode');
+      throw new ApiError(503, 'WhatsApp messaging is disabled in mock delivery mode');
     }
 
     const response = await fetch(this.apiUrl, {
@@ -86,7 +89,7 @@ export class WhatsAppIntegration {
 
   async sendApprovedMarketingTemplate({ to, body }: WhatsAppMessage): Promise<string | undefined> {
     if (!env.META_WHATSAPP_MARKETING_TEMPLATE) {
-      throw new Error('WhatsApp marketing template is not configured');
+      throw new ApiError(503, 'WhatsApp marketing template is not configured');
     }
     const response = await fetch(this.apiUrl, {
       method: 'POST',

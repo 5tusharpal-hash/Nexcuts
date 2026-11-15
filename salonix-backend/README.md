@@ -43,8 +43,9 @@ The recommended staging topology is a Vercel-hosted frontend, a separate Render 
   - `MIGRATION_DATABASE_URL` with the Neon direct, non-pooled connection string.
   - `REDIS_URL` with a Redis TCP connection string supported by node-redis, ioredis, and BullMQ. An HTTP-only Redis REST endpoint is not sufficient.
   - `CORS_ORIGINS` with the exact staging frontend origin.
+  - `APP_ENV=staging` while keeping `NODE_ENV=production`.
   - Random, independent values for `JWT_SECRET` and `AUTH_OTP_HASH_SECRET`, each at least 32 characters.
-  - `AUTH_OTP_DELIVERY=providers`, the approved WhatsApp OTP provider variables, and `RESEND_API_KEY` plus `RESEND_FROM_EMAIL`.
+  - `AUTH_OTP_DELIVERY=mock` is allowed without WhatsApp or Resend credentials. OTPs remain hashed, expire normally, and are never included in staging API responses. To test OTP delivery end to end, use `AUTH_OTP_DELIVERY=providers` and configure the approved WhatsApp template and Resend sender credentials.
   - For image uploads, the Neon bucket name in `MEDIA_STORAGE_BUCKET` and that branch's S3 endpoint, region, access key, and secret key using the `AWS_*` variables. These credentials must belong to the staging Neon branch.
   - Confirm the Neon project is in a region that supports Neon Object Storage before provisioning the staging bucket.
   - Configure Google OAuth and payment provider secrets only if those integrations are enabled for staging.
@@ -70,8 +71,9 @@ Render's free web service may sleep when idle. That is useful for a low-cost smo
 - Passwords require at least 12 characters and are limited to 72 UTF-8 bytes for bcrypt compatibility.
 - OTPs are six digits, expire after five minutes, are single-use, and are stored as keyed hashes in Redis. Resends have a 60-second cooldown; request and verification attempts are rate-limited by identifier and IP.
 - Current limits are 5 OTP requests per identifier/hour and 10 per IP/hour, 10 OTP verification attempts per identifier/hour and 30 per IP/hour, plus 10 login attempts per identifier/15 minutes and 20 per IP/15 minutes.
-- In development, `AUTH_OTP_DELIVERY=mock` avoids external messaging. The OTP is included in responses only outside production when `AUTH_OTP_EXPOSE_OTP=true` (enabled by default in development). Verification is still required.
-- Production requires `AUTH_OTP_DELIVERY=providers`, Redis, a separate OTP hash secret, Meta WhatsApp Cloud API credentials and an approved authentication template, plus Resend credentials and a verified sender address.
+- In development, `AUTH_OTP_DELIVERY=mock` avoids external messaging. The OTP is included in responses only in development when `AUTH_OTP_EXPOSE_OTP=true` (enabled by default in development). Verification is still required.
+- `APP_ENV=staging` can use `AUTH_OTP_DELIVERY=mock`; OTPs are not exposed in responses, so completing OTP flows requires configuring delivery providers.
+- Actual production (`APP_ENV=production`) requires `AUTH_OTP_DELIVERY=providers`, Redis, a separate OTP hash secret, Meta WhatsApp Cloud API credentials and an approved authentication template, plus Resend credentials and a verified sender address.
 - Login and session checks reject every account state except `ACTIVE`. `PENDING`, `SUSPENDED`, and `DEACTIVATED` remain distinct lifecycle states; account administration endpoints are not part of this auth module.
 
 Auth endpoints:

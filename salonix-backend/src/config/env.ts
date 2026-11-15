@@ -5,6 +5,7 @@ const optionalEnvironmentValue = <T extends z.ZodType>(schema: T) =>
 
 const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  APP_ENV: z.enum(['development', 'staging', 'production', 'test']).optional(),
   PORT: z.coerce.number().int().positive().default(3000),
   HOST: z.string().min(1).default('0.0.0.0'),
   CORS_ORIGINS: z.string().default('http://localhost:3000').transform((value) =>
@@ -29,8 +30,8 @@ const envSchema = z.object({
   REDIS_URL: z.string().url().optional(),
   AUTH_OTP_DELIVERY: z.enum(['mock', 'providers']).default('mock'),
   AUTH_OTP_EXPOSE_OTP: z.enum(['true', 'false']).optional(),
-  AUTH_OTP_HASH_SECRET: z.string().min(32).optional(),
-  GOOGLE_CLIENT_ID: z.string().min(1).optional(),
+  AUTH_OTP_HASH_SECRET: optionalEnvironmentValue(z.string().min(32)),
+  GOOGLE_CLIENT_ID: optionalEnvironmentValue(z.string().min(1)),
   META_WHATSAPP_ACCESS_TOKEN: optionalEnvironmentValue(z.string().min(1)),
   META_WHATSAPP_PHONE_NUMBER_ID: optionalEnvironmentValue(z.string().min(1)),
   META_WHATSAPP_API_VERSION: optionalEnvironmentValue(z.string().regex(/^v\d+\.\d+$/)),
@@ -38,8 +39,8 @@ const envSchema = z.object({
   META_WHATSAPP_OTP_LANGUAGE: z.string().min(2).default('en'),
   META_WHATSAPP_MARKETING_TEMPLATE: optionalEnvironmentValue(z.string().min(1)),
   META_WHATSAPP_MARKETING_LANGUAGE: z.string().min(2).default('en'),
-  RESEND_API_KEY: z.string().min(1).optional(),
-  RESEND_FROM_EMAIL: z.string().email().optional(),
+  RESEND_API_KEY: optionalEnvironmentValue(z.string().min(1)),
+  RESEND_FROM_EMAIL: optionalEnvironmentValue(z.string().email()),
   STRIPE_SECRET_KEY: optionalEnvironmentValue(z.string().min(1)),
   STRIPE_WEBHOOK_SECRET: optionalEnvironmentValue(z.string().min(1)),
   RAZORPAY_KEY_ID: optionalEnvironmentValue(z.string().min(1)),
@@ -48,6 +49,8 @@ const envSchema = z.object({
   PLATFORM_BILLING_RETURN_URL: optionalEnvironmentValue(z.string().url()),
   ELASTICSEARCH_URL: z.string().url().optional(),
 }).superRefine((value, context) => {
+  const appEnvironment =
+    value.APP_ENV ?? (value.NODE_ENV === 'production' ? 'production' : value.NODE_ENV);
   const resolvedStorageValues = [
     value.MEDIA_STORAGE_ENDPOINT ?? value.AWS_ENDPOINT_URL_S3,
     value.MEDIA_STORAGE_REGION ?? value.AWS_REGION,
@@ -100,6 +103,20 @@ const envSchema = z.object({
         message: 'REDIS_URL is required in production',
       });
     }
+  }
+
+  if (
+    (value.NODE_ENV === 'production' || appEnvironment === 'production') &&
+    !value.AUTH_OTP_HASH_SECRET
+  ) {
+    context.addIssue({
+      code: 'custom',
+      path: ['AUTH_OTP_HASH_SECRET'],
+      message: 'AUTH_OTP_HASH_SECRET is required in staging and production',
+    });
+  }
+
+  if (appEnvironment === 'production') {
     if (value.AUTH_OTP_DELIVERY !== 'providers') {
       context.addIssue({
         code: 'custom',
@@ -107,13 +124,7 @@ const envSchema = z.object({
         message: 'Production OTP delivery must use configured providers',
       });
     }
-
-    if (!value.REDIS_URL) {
-      context.addIssue({ code: 'custom', path: ['REDIS_URL'], message: 'REDIS_URL is required in production' });
-    }
-
     for (const key of [
-      'AUTH_OTP_HASH_SECRET',
       'META_WHATSAPP_ACCESS_TOKEN',
       'META_WHATSAPP_PHONE_NUMBER_ID',
       'META_WHATSAPP_API_VERSION',
@@ -174,6 +185,9 @@ const parsedEnv = envSchema.parse(process.env);
 
 export const env = {
   ...parsedEnv,
+  APP_ENV:
+    parsedEnv.APP_ENV ??
+    (parsedEnv.NODE_ENV === 'production' ? 'production' : parsedEnv.NODE_ENV),
   MEDIA_STORAGE_ENDPOINT: parsedEnv.MEDIA_STORAGE_ENDPOINT ?? parsedEnv.AWS_ENDPOINT_URL_S3,
   MEDIA_STORAGE_REGION: parsedEnv.MEDIA_STORAGE_REGION ?? parsedEnv.AWS_REGION,
   MEDIA_STORAGE_ACCESS_KEY_ID:
@@ -183,6 +197,8 @@ export const env = {
   REDIS_URL: parsedEnv.REDIS_URL ?? 'redis://localhost:6379',
   AUTH_OTP_EXPOSE_OTP:
     parsedEnv.NODE_ENV !== 'production' &&
+    parsedEnv.APP_ENV !== 'staging' &&
+    parsedEnv.APP_ENV !== 'production' &&
     (parsedEnv.AUTH_OTP_EXPOSE_OTP === undefined
       ? parsedEnv.NODE_ENV === 'development'
       : parsedEnv.AUTH_OTP_EXPOSE_OTP === 'true'),
